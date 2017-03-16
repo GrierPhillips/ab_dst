@@ -4,11 +4,11 @@ test.py: File containing tests that relate to the development of the ab_dst
 '''
 import unittest
 
-from blist import sorteddict
+from collections import OrderedDict
 
 from property_generator import PropGen
 
-# pylint: disable=W0212
+# pylint: disable=W0212, C0301
 
 
 class PropGenTest(unittest.TestCase):
@@ -28,7 +28,6 @@ class PropGenTest(unittest.TestCase):
             'basepath': '/Users/grr/ab_dst/',
             'max.h.id': 200000}
         self.prop_gen = PropGen(self.template, self.params)
-        self.maxDiff = None
 
     def teardown(self):
         '''
@@ -39,15 +38,13 @@ class PropGenTest(unittest.TestCase):
 
     def test_read_temp(self):
         '''
-        The _read_temp method should return all of the lines in a template
-        file.
-        '''
+        The _read_temp method should return all of the lines in a template file.'''  # noqa
         lines = self.prop_gen._read_temp()
         expected = [
             'schedule.adjustment.parameters.file = BASEPATHFile.xls\n',
             'max.hh.id = 150000\n',
             'simulated.vehicle.dat.file = BASEPATHLOOP_PAIR/file_#.dat\n',
-            'adjusted.schedules.output.file = BASEPATHLOOP_PAIR/file_#.csv\n',
+            'adjusted.schedules.output.file = BASEPATHLOOP_PAIR/file.csv\n',
             'special.purpose.models.trip.file = BASEPATHtruck/TRK_EXT\n']
         self.assertEqual(
             lines,
@@ -56,16 +53,15 @@ class PropGenTest(unittest.TestCase):
 
     def test_get_params(self):
         '''
-        The _get_params method should collect a dictionary of all the key,
-        value pairs present in the template file.
-        '''
+        The _get_params method should collect a dictionary of all the key, value pairs present in the template file.'''  # noqa
         params = self.prop_gen._get_params()
-        expected = sorteddict({
-            'schedule.adjustment.parameters.file ': 'BASEPATHFile.xls',
-            'max.hh.id ': '150000',
-            'simulated.vehicle.dat.file ': 'BASEPATHLOOP_PAIR/file_#.dat',
-            'adjusted.schedules.output.file ': 'BASEPATHLOOP_PAIR/file_#.csv',
-            'special.purpose.models.trip.file ': 'BASEPATHtruck/TRK_EXT'})
+        tuples = [
+            ('schedule.adjustment.parameters.file ', 'BASEPATHFile.xls'),
+            ('max.hh.id ', '150000'),
+            ('simulated.vehicle.dat.file ', 'BASEPATHLOOP_PAIR/file_#.dat'),
+            ('adjusted.schedules.output.file ', 'BASEPATHLOOP_PAIR/file.csv'),
+            ('special.purpose.models.trip.file ', 'BASEPATHtruck/TRK_EXT')]
+        expected = OrderedDict((key, value) for (key, value) in tuples)
         self.assertEqual(
             params,
             expected,
@@ -73,18 +69,15 @@ class PropGenTest(unittest.TestCase):
 
     def test_get_path_keys(self):
         '''
-        The _get_path_keys method should set self.loop_path_keys and
-        self.root_path_keys to lists of the keys in the template that
-        require the root path or a loop path to be set.
-        '''
+        The _get_path_keys method should set self.loop_path_keys and self.root_path_keys to lists of the keys in the template that require the root path or a loop path to be set.'''  # noqa
         roots = self.prop_gen.root_path_keys
         loops = self.prop_gen.loop_path_keys
         expected_roots = [
             'schedule.adjustment.parameters.file ',
             'special.purpose.models.trip.file ']
         expected_loops = [
-            'adjusted.schedules.output.file ',
-            'simulated.vehicle.dat.file ']
+            'simulated.vehicle.dat.file ',
+            'adjusted.schedules.output.file ']
         self.assertEqual(
             expected_roots,
             roots,
@@ -93,7 +86,3 @@ class PropGenTest(unittest.TestCase):
             expected_loops,
             loops,
             msg='Expected {}, but found {}.'.format(expected_loops, loops))
-
-
-# if __name__ == '__main__':
-#     unittest.main(sys.argv[1])
