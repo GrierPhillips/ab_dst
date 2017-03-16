@@ -3,7 +3,7 @@ property_generator.py: This module contains the BasePropGen class. This class
 can be used to generate property files for the AB_DST class and for use with
 the runIsam.cmd batch file.
 '''
-from blist import sorteddict
+from collections import OrderedDict
 
 
 class PropGen(object):
@@ -38,7 +38,7 @@ class PropGen(object):
         lines = [line.strip().split('=') for line in self._read_temp()]
         lines = [line for line in lines if len(line) != 1]
         lines = [line for line in lines if not line[0].startswith('#')]
-        params = sorteddict(line for line in lines)
+        params = OrderedDict(line for line in lines)
         for key, value in params.items():
             params[key] = value.strip()
         return params
