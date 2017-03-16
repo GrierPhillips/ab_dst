@@ -13,15 +13,17 @@ class PropGen(object):
     def __init__(self, template, parameters):
         self.template = template
         self.user_params = parameters
+        self.offsets = {
+            'simulated.vehicle.dat.file ':
+            'BASEPATHLOOP_PAIR/output_vehicle_#.dat',
+            'simulated.path.dat.file ': 'BASEPATHLOOP_PAIR/output_path_#.dat',
+            'simulated.travel.time.file ':
+            'BASEPATHLOOP_PAIR/output_time_#.bin'
+        }
         self.params = self._get_params()
         self.root_path_keys = []
         self.loop_path_keys = []
         self._get_path_keys()
-        self.offsets = [
-            'simulated.vehicle.dat.file',
-            'simulated.path.dat.file',
-            'simulated.travel.time.file'
-        ]
 
     def _read_temp(self):
         '''
@@ -41,6 +43,9 @@ class PropGen(object):
         params = OrderedDict(line for line in lines)
         for key, value in params.items():
             params[key] = value.strip()
+        for key in self.offsets:
+            self.offsets[key] = self.offsets[key]\
+                .replace('BASEPATH', self.user_params['basepath'])
         return params
 
     def _get_path_keys(self):
@@ -60,12 +65,19 @@ class PropGen(object):
             outer (string): The current outer loop iteration number.
             inner (string): The current inner loop iteration number.
         '''
-        # import pdb; pdb.set_trace()
         basepath = self.user_params['basepath']
         for key, value in self.user_params.items():
             if key == 'basepath':
-                for key in self.params.keys():
-                    self._set_path(key, outer, inner, basepath)
+                for key2 in self.params.keys():
+                    self._set_path(key2, outer, inner, basepath)
+            elif key == 'special.purpose.models.trip.file ':
+                if inner == '0':
+                    trk_ext = self.user_params[
+                        'special.purpose.models.trip.file ']
+                    self.params[key] = self.params[key]\
+                        .replace('TRK_EXT', trk_ext)
+                else:
+                    self.params[key] = ''
             else:
                 self.params[key] = value
 
@@ -92,7 +104,6 @@ class PropGen(object):
             key (string): The key for the parameter to be set.
             basepath (string): The value entered by user for BASEPATH.
         '''
-        # import pdb; pdb.set_trace()
         self.params[key] = self.params[key].replace('BASEPATH', basepath)
 
     def set_loop_paths(self, key, outer, inner):
@@ -105,21 +116,15 @@ class PropGen(object):
             outer (string): The current outer loop iteration number.
             inner (string): The current inner loop iteration number.
         '''
-        if key in self.offsets:
-            if inner == 0:
+        if key in self.offsets.keys():
+            if inner == '0':
                 self.params[key] = ''
             else:
-                loop_pair = 'outer{}/inner{}'.format(outer, inner - 1)
-                self.params[key] = self.params[key]\
+                loop_pair = 'outer{}/inner{}'.format(
+                    outer, str(int(inner) - 1))
+                self.params[key] = self.offsets[key]\
                     .replace('LOOP_PAIR', loop_pair)\
-                    .replace('#', inner - 1)
-            return
-        if key == 'special.purpose.models.trip.file':
-            if inner == 0:
-                trk_ext = self.user_params['trk_ext']
-                self.params[key] = self.params[key].replace('TRK_EXT', trk_ext)
-            else:
-                self.params[key] = ''
+                    .replace('#', str(int(inner) - 1))
             return
         if 'LOOP_PAIR' in self.params[key]:
             loop_pair = 'outer{}/inner{}'.format(outer, inner)
@@ -143,6 +148,6 @@ class PropGen(object):
         self._set_values(outer, inner)
         lines = []
         for item in self.params.items():
-            lines.append('='.join(item) + '\n')
+            lines.append('= '.join(item) + '\n')
         with open(filename, 'w') as file_obj:
             file_obj.writelines(lines)
